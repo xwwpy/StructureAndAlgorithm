@@ -1,5 +1,4 @@
-use core::fmt;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::rc::Rc;
 use std::cell::RefCell;
 
@@ -12,11 +11,19 @@ pub struct Node<T> {
     next: OptionRefNode<T>,
 }
 
+fn get_option_ref_node_str<T: Debug>(data: OptionRefNode<T>) -> String{
+    if let Some(node) = data {
+        format!("{:?}", node.borrow().data)
+    } else {
+        "None".to_string()
+    }
+}
+
 impl<T> Display for Node<T> 
-    where T: Display
+    where T: Display + Debug
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&format!("Node: [data: {}, prev-ptr: {:p}, next-ptr: {:p}]", self.data, &self.prev, &self.next))?;
+        f.write_str(&format!("Node: [data: {}, prev-data: {:?}, next-data: {:?}]", self.data, get_option_ref_node_str(self.prev.clone()), get_option_ref_node_str(self.next.clone())))?;
         Ok(())
     }
 }
@@ -28,11 +35,12 @@ pub struct LinkedList<T> {
 }
 
 impl<T> Display for LinkedList<T>
-    where T: Display
+    where T: Display + Debug
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut display_size = self.size;
         f.write_str("LinkList {")?;
+        f.write_str(&format!("head-data: {}, tail_data: {} --- ", get_option_ref_node_str(self.head.clone()), get_option_ref_node_str(self.tail.clone())))?;
         let mut node = self.head.clone();
         while display_size > 0 {
             f.write_str(&format!("{} -> ", node.clone().unwrap().borrow()))?;
@@ -58,7 +66,9 @@ impl<T> LinkedList<T> {
             let tail_node = self.tail.clone().unwrap();
             tail_node.borrow_mut().next(new_node.clone());
             new_node.borrow_mut().prev(tail_node.clone());
+            self.tail = Some(new_node.clone());
         }
+        self.size += 1;
     }
 
 
@@ -71,11 +81,12 @@ impl<T> LinkedList<T> {
                 self.head = None;
                 self.tail = None;
             } else {
-                self.tail.clone().unwrap().borrow_mut().prev = None;
                 let tail_prev = self.tail.clone().unwrap().borrow_mut().prev.clone();
+                self.tail.clone().unwrap().borrow_mut().prev = None;
                 self.tail = tail_prev.clone();
                 tail_prev.unwrap().borrow_mut().next = None;
             }
+            self.size -= 1;
             res
         }
         
