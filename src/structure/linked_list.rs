@@ -34,6 +34,12 @@ pub struct LinkedList<T> {
     size: usize,
 }
 
+// impl<T> Drop for LinkedList<T> {
+//     fn drop(&mut self) {
+//         while let Some(_) = self.pop() {}
+//     }
+// }
+
 impl<T> Display for LinkedList<T>
     where T: Display + Debug
 {

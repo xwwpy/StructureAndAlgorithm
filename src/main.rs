@@ -6,7 +6,9 @@ fn main() {
     ll.push(2);
     ll.push(3);
     println!("{}", ll);
-    println!("{}", ll.pop().unwrap().borrow());
+    let a1 = ll.pop().unwrap();
+    println!("{}", a1.borrow());
     println!("{}", ll);
+    drop(ll);
 }
 
