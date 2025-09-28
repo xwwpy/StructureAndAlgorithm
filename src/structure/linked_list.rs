@@ -11,7 +11,7 @@ pub struct Node<T> {
     next: OptionRefNode<T>,
 }
 
-fn get_option_ref_node_str<T: Debug>(data: OptionRefNode<T>) -> String{
+fn get_option_ref_node_str<T: Debug>(data: &OptionRefNode<T>) -> String{
     if let Some(node) = data {
         format!("{:?}", node.borrow().data)
     } else {
@@ -23,7 +23,7 @@ impl<T> Display for Node<T>
     where T: Display + Debug
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&format!("Node: [data: {}, prev-data: {:?}, next-data: {:?}]", self.data, get_option_ref_node_str(self.prev.clone()), get_option_ref_node_str(self.next.clone())))?;
+        f.write_str(&format!("Node: [data: {}, prev-data: {:?}, next-data: {:?}]", self.data, get_option_ref_node_str(&self.prev), get_option_ref_node_str(&self.next)))?;
         Ok(())
     }
 }
@@ -46,7 +46,7 @@ impl<T> Display for LinkedList<T>
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut display_size = self.size;
         f.write_str("LinkList {")?;
-        f.write_str(&format!("head-data: {}, tail_data: {} --- ", get_option_ref_node_str(self.head.clone()), get_option_ref_node_str(self.tail.clone())))?;
+        f.write_str(&format!("head-data: {}, tail_data: {} --- ", get_option_ref_node_str(&self.head), get_option_ref_node_str(&self.tail)))?;
         let mut node = self.head.clone();
         while display_size > 0 {
             f.write_str(&format!("{} -> ", node.clone().unwrap().borrow()))?;
@@ -70,13 +70,48 @@ impl<T> LinkedList<T> {
             self.tail = Some(new_node.clone());
         } else {
             let tail_node = self.tail.clone().unwrap();
-            tail_node.borrow_mut().next(new_node.clone());
-            new_node.borrow_mut().prev(tail_node.clone());
+            tail_node.borrow_mut().set_next(new_node.clone());
+            new_node.borrow_mut().set_prev(tail_node.clone());
             self.tail = Some(new_node.clone());
         }
         self.size += 1;
     }
 
+    pub fn insert(&mut self, data: T, index: usize) {
+        if self.size < index {
+            panic!("Index out of bounds")
+        }
+        if self.size == 0 {
+            self.push(data);
+            return;
+        }
+        if index == self.size {
+            self.push(data);
+            return;
+        }
+
+        let mut temp_size = index;
+        let mut next_node = self.head.clone().unwrap();
+        let new_node = Rc::new(RefCell::new(Node::new(data)));
+        while temp_size != 0 {
+            let tmp = next_node.borrow().next.clone().unwrap();
+            next_node = tmp;
+            temp_size -= 1;
+        }
+        let prev_node = next_node.borrow().prev.clone();
+
+        if let Some(prev_node_temp) = prev_node {
+            prev_node_temp.borrow_mut().set_next(new_node.clone());
+            new_node.borrow_mut().set_prev(prev_node_temp.clone());
+        } else {
+            self.head = Some(new_node.clone());
+        }
+
+        next_node.borrow_mut().set_prev(new_node.clone());
+        new_node.borrow_mut().set_next(next_node.clone());
+        self.size += 1;
+
+    }
 
     pub fn pop(&mut self) -> OptionRefNode<T> {
         if self.size == 0 {
@@ -105,13 +140,11 @@ impl<T> Node<T> {
         Self { data, prev: None, next: None }
     }
 
-    pub fn prev(&mut self, ref_node: RefNode<T>) -> &mut Self{
+    pub fn set_prev(&mut self, ref_node: RefNode<T>){
         self.prev.replace(ref_node);
-        self
     }
 
-    pub fn next(&mut self, ref_node: RefNode<T>) -> &mut Self{
+    pub fn set_next(&mut self, ref_node: RefNode<T>){
         self.next.replace(ref_node); // 替换值，并且会返回原来的值，这里直接进行释放
-        self
     }
 }
