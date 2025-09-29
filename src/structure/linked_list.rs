@@ -77,10 +77,93 @@ impl<T> LinkedList<T> {
         self.size += 1;
     }
 
+    #[inline]
+    pub fn check_index(&self, index: usize){
+        if index >= self.size {
+            panic!("Index out of bounds")
+        }
+    }
+
+    pub fn clone_from_index(&self, index: usize) -> RefNode<T> {
+
+        self.check_index(index);
+
+        let mut temp_size = index;
+
+        let mut res = self.head.clone().unwrap();
+
+        while temp_size != 0 {
+            let tmp = res.borrow().next.clone().unwrap();
+            res = tmp;
+            temp_size -= 1;
+        }
+
+        res
+    }
+
+
+    pub fn remove(&mut self, index: usize) -> RefNode<T> {
+
+        self.check_index(index);
+        
+        if self.size - 1 == index {
+            return self.pop().unwrap();// 这里size已经减了1
+        }
+
+        let return_node = self.clone_from_index(index);
+
+        let prev_node = return_node.borrow().prev.clone(); // 可能为None
+        let next_node = return_node.borrow().next.clone().unwrap(); // 一定不是None
+        match prev_node {
+            Some(ref_node) => {
+                ref_node.borrow_mut().set_next(next_node.clone());
+                next_node.borrow_mut().set_prev(ref_node);
+            },
+            None => {
+                // 说明取走的是首节点
+                self.head = Some(next_node.clone());
+                next_node.borrow_mut().prev = None;
+            }
+        }
+        self.size -= 1;
+        return_node
+    }
+
+     pub fn remove0(&mut self, index: usize) -> T {
+
+        self.check_index(index);
+        
+        if self.size - 1 == index {
+            return unsafe { self.pop().unwrap().as_ptr().read().data };// 这里size已经减了1 
+        }
+
+        let return_node = self.clone_from_index(index);
+
+        let prev_node = return_node.borrow().prev.clone(); // 可能为None
+        let next_node = return_node.borrow().next.clone().unwrap(); // 一定不是None
+        match prev_node {
+            Some(ref_node) => {
+                ref_node.borrow_mut().set_next(next_node.clone());
+                next_node.borrow_mut().set_prev(ref_node);
+            },
+            None => {
+                // 说明取走的是首节点
+                self.head = Some(next_node.clone());
+                next_node.borrow_mut().prev = None;
+            }
+        }
+        self.size -= 1;
+        return_node.borrow_mut().prev = None;
+        return_node.borrow_mut().next = None; // 为什么不加上这两行代码 就会导致内存错误
+        unsafe { return_node.as_ptr().read().data }
+    }
+
     pub fn insert(&mut self, data: T, index: usize) {
+
         if self.size < index {
             panic!("Index out of bounds")
         }
+
         if self.size == 0 {
             self.push(data);
             return;
@@ -89,15 +172,11 @@ impl<T> LinkedList<T> {
             self.push(data);
             return;
         }
-
-        let mut temp_size = index;
-        let mut next_node = self.head.clone().unwrap();
+        
         let new_node = Rc::new(RefCell::new(Node::new(data)));
-        while temp_size != 0 {
-            let tmp = next_node.borrow().next.clone().unwrap();
-            next_node = tmp;
-            temp_size -= 1;
-        }
+
+        let next_node = self.clone_from_index(index);
+
         let prev_node = next_node.borrow().prev.clone();
 
         if let Some(prev_node_temp) = prev_node {

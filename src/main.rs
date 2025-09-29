@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use demo01::{algorithm, structure::linked_list::LinkedList};
 
 fn main() {
@@ -12,6 +14,10 @@ fn main() {
     ll.pop();
     ll.insert(2, 2);
     ll.insert(9, 1);
+    println!("{}", ll);
+    println!("{}", ll.remove0(0));
+    println!("{}", ll);
+    println!("{}", ll.remove0(1));
     println!("{}", ll);
 }
 
